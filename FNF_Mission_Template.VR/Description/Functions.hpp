@@ -324,4 +324,16 @@ class CfgFunctions
 			class watchAssassin {};
 		};
 	};
+	class OO {
+    class Air {
+        file = "OrthyOliver\functions\Air";
+        class spawnHeloTaxi {};					//OO_fnc_spawnHeloTaxi
+		class ambientFlybyFormation {};			//OO_fnc_ambientFlybyFormation
+    };
+	class Effects {
+        file = "OrthyOliver\functions\Effects";
+        class markerExplodeSequence {};			//OO_fnc_markerExplodeSequence		
+		class startDroneFeed {};				//OO_fnc_startDroneFeed
+    };
+	}
 };
