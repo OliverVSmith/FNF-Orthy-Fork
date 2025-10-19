@@ -332,8 +332,7 @@ class CfgFunctions
     };
 	class Effects {
         file = "OrthyOliver\functions\Effects";
-        class markerExplodeSequence {};			//OO_fnc_markerExplodeSequence		
-		class startDroneFeed {};				//OO_fnc_startDroneFeed
+        class markerExplodeSequence {};			//OO_fnc_markerExplodeSequence				
     };
 	}
 };
