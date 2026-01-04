@@ -333,6 +333,10 @@ class CfgFunctions
 	class Effects {
         file = "OrthyOliver\functions\Effects";
         class markerExplodeSequence {};			//OO_fnc_markerExplodeSequence				
-    };
+    };	
+	class Utilities {
+		file = "OrthyOliver\functions\Utilities";
+		class attachNamed {}; // OO_fnc_attachNamed
+	};
 	}
 };
