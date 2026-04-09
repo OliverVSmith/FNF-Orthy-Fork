@@ -124,43 +124,53 @@ if (not isNil "fnf_objectives") then
 player addEventHandler ["Killed", {
 	_killedPlayer = _this select 0;
 	_playerGroup = group _killedPlayer;
+
+	// 1. Time window check (fast exit — no queue push needed)
+	_disableWindow = (missionNamespace getVariable ["fnf_timeToDisableReinsertsAfterSafeStart", 20]) * 60;
+	_disableWindow = _disableWindow + 3;
+	_timeServerStarted = missionNamespace getVariable ["fnf_startTime", -1];
+	_windowPassed = false;
+	if (isServer and hasInterface) then {
+		_windowPassed = time > _disableWindow;
+	} else {
+		_windowPassed = (serverTime - _timeServerStarted) > _disableWindow;
+		if (_timeServerStarted isEqualTo -1) then { _windowPassed = false; };
+	};
+
+	if (_windowPassed) exitWith {
+		[{call FNF_ClientSide_fnc_startSpectator;}, [], 3] call CBA_fnc_waitAndExecute;
+		[{["<t align='center' size='1.5'>REINSERT UNAVAILABLE</t><t align='center'><br/><br/>Reinsert window has passed, you cannot be reinserted</t>", "info", 10] call FNF_ClientSide_fnc_notificationSystem;}, [], 5] call CBA_fnc_waitAndExecute;
+	};
+
+	// 2. Distance check (before queue push)
+	_aliveSquadmates = (units _playerGroup) select {alive _x && _x != _killedPlayer};
+	_ineligibleByDistance = false;
+	if (count _aliveSquadmates > 0) then {
+		_totalDist = 0;
+		{ _totalDist = _totalDist + (_killedPlayer distance _x); } forEach _aliveSquadmates;
+		_avgDist = _totalDist / (count _aliveSquadmates);
+		if (_avgDist >= 200) then { _ineligibleByDistance = true; };
+	};
+
+	if (_ineligibleByDistance) exitWith {
+		[{call FNF_ClientSide_fnc_startSpectator;}, [], 3] call CBA_fnc_waitAndExecute;
+		[{["<t align='center' size='1.5'>REINSERT UNAVAILABLE</t><t align='center'><br/><br/>You died too far from your squad to be reinserted</t>", "info", 10] call FNF_ClientSide_fnc_notificationSystem;}, [], 5] call CBA_fnc_waitAndExecute;
+	};
+
+	// 3. Add to death queue — player passed all eligibility checks
 	_deathQueue = _playerGroup getVariable ["fnf_deathQueue", []];
 	_deathQueue pushBack (getPlayerUID player);
 	_playerGroup setVariable ["fnf_deathQueue", _deathQueue, true];
 
-	//check if player could be reinserted, pick spectator script based on this
-	_disableWindow = (missionNamespace getVariable ["fnf_timeToDisableReinsertsAfterSafeStart", 20]) * 60;
-
-	_disableWindow = _disableWindow + 3;
-
-	_timeServerStarted = missionNamespace getVariable ["fnf_startTime", -1];
-	_result = objNull;
-
-	if (isServer and hasInterface) then
-	{
-		_result = time > _disableWindow;
-	} else {
-		_result = (serverTime - _timeServerStarted) > _disableWindow;
-		if (_timeServerStarted isEqualTo -1) then
-		{
-			_result = false;
-		};
-	};
-
-	if (_result) then
+	// 4. Reinsert-already-requested check
+	_reinsertRequested = group player getVariable ["fnf_reinsertRequested", false];
+	if (_reinsertRequested) then
 	{
 		[{call FNF_ClientSide_fnc_startSpectator;}, [], 3] call CBA_fnc_waitAndExecute;
-		[{["<t align='center' size='1.5'>REINSERT UNAVAILABLE</t><t align='center'><br/><br/>Reinsert window has passed, you cannot be reinserted</t>", "info", 10] call FNF_ClientSide_fnc_notificationSystem;}, [], 5] call CBA_fnc_waitAndExecute;
+		[{["<t align='center' size='1.5'>REINSERT UNAVAILABLE</t><t align='center'><br/><br/>Reinsert has already been requested by your squad, you cannot be reinserted</t>", "info", 10] call FNF_ClientSide_fnc_notificationSystem;}, [], 5] call CBA_fnc_waitAndExecute;
 	} else {
-		_reinsertRequested = group player getVariable ["fnf_reinsertRequested", false];
-		if (_reinsertRequested) then
-		{
-			[{call FNF_ClientSide_fnc_startSpectator;}, [], 3] call CBA_fnc_waitAndExecute;
-			[{["<t align='center' size='1.5'>REINSERT UNAVAILABLE</t><t align='center'><br/><br/>Reinsert has already been requested by your squad, you cannot be reinserted</t>", "info", 10] call FNF_ClientSide_fnc_notificationSystem;}, [], 5] call CBA_fnc_waitAndExecute;
-		} else {
-			[{call FNF_ClientSide_fnc_startLimitedSpectator;}, [], 3] call CBA_fnc_waitAndExecute;
-			[{["<t align='center' size='1.5'>REINSERT AVAILABLE</t><t align='center'><br/><br/>Reinsert is available provided one of your squadmates calls one in before the window closes</t>", "info", 10] call FNF_ClientSide_fnc_notificationSystem;}, [], 5] call CBA_fnc_waitAndExecute;
-		};
+		[{call FNF_ClientSide_fnc_startLimitedSpectator;}, [], 3] call CBA_fnc_waitAndExecute;
+		[{["<t align='center' size='1.5'>REINSERT AVAILABLE</t><t align='center'><br/><br/>Reinsert is available provided one of your squadmates calls one in before the window closes</t>", "info", 10] call FNF_ClientSide_fnc_notificationSystem;}, [], 5] call CBA_fnc_waitAndExecute;
 	};
 }];
 
